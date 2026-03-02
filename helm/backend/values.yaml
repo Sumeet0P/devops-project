@@ -1,6 +1,6 @@
 image:
   repository: sumeet0p/py-backend
-  tag: "v1"
+  tag: "latest"
   pullPolicy: IfNotPresent
 
 service:

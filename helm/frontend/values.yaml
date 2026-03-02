@@ -1,6 +1,6 @@
 image:
   repository: sumeet0p/py-frontend
-  tag: "v2"
+  tag: "latest"
   pullPolicy: IfNotPresent
 
 service:
