@@ -50,20 +50,27 @@ resource "aws_instance" "devops_server" {
 
 user_data = <<-EOF
 #!/bin/bash
+
 apt update -y
-apt install -y curl
+apt install -y curl git
 
 # install k3s
 curl -sfL https://get.k3s.io | sh -
 
-sleep 30
+# wait for kubernetes
+until sudo k3s kubectl get nodes >/dev/null 2>&1; do
+  echo "Waiting for Kubernetes..."
+  sleep 5
+done
 
-# configure kubectl for ubuntu user
+# configure kubectl for ubuntu
 mkdir -p /home/ubuntu/.kube
 cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
 chown ubuntu:ubuntu /home/ubuntu/.kube/config
 
 echo 'export KUBECONFIG=$HOME/.kube/config' >> /home/ubuntu/.bashrc
+
+export KUBECONFIG=/home/ubuntu/.kube/config
 
 # install ArgoCD
 kubectl create namespace argocd
@@ -71,25 +78,18 @@ kubectl create namespace argocd
 kubectl apply -n argocd \
 -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-# wait for kubernetes API
-until kubectl get nodes >/dev/null 2>&1; do
-  echo "Waiting for Kubernetes..."
-  sleep 5
+# wait for argocd server
+until kubectl get pods -n argocd | grep argocd-server >/dev/null 2>&1; do
+  echo "Waiting for ArgoCD..."
+  sleep 10
 done
 
-# install helm
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-
-# clone project repo
+# clone repo
 git clone https://github.com/Sumeet0P/devops-project.git /home/ubuntu/devops-project
 
-cd /home/ubuntu/devops-project
-
-# deploy backend
-helm install backend ./helm/backend
-
-# deploy frontend
-helm install frontend ./helm/frontend
+# register applications with ArgoCD
+kubectl apply -f /home/ubuntu/devops-project/argocd/frontend-app.yaml
+kubectl apply -f /home/ubuntu/devops-project/argocd/backend-app.yaml
 
 EOF
 
