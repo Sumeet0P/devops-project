@@ -3,7 +3,7 @@ import os
 
 app = FastAPI()
 
-APP_MESSAGE = os.getenv("APP_MESSAGE", "Hello from Backend 🚀")
+APP_MESSAGE = os.getenv("APP_MESSAGE", "Hi Sumeet This Side!! 🚀")
 
 @app.get("/")
 def root():
